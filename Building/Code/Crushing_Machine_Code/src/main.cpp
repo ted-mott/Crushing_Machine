@@ -11,7 +11,7 @@ ________________________________________________________________________________
 //______________________________________________________________________________________________
 #include <Arduino.h>
 #include "crush.h"
-#include <HX711.h>
+#include "HX711.h"
 
 
 //Global Variables
@@ -32,8 +32,8 @@ const int limitSwitchPin = 10;
 
 //Load cell
 //______________________________________________________________________________________________
-const int loadCellSCKPin = A0;
-const int loadCellDOUTPin = A1;
+const int loadCellSCKPin = A1;
+const int loadCellDOUTPin = A0;
 
 
 //Stepper motor tracking/logic
@@ -43,7 +43,7 @@ unsigned long testStepInterval = defaultStepInterval;
 const long min_stepInterval = 5000; //manually set to ensure motors do not break
 unsigned long lastStep = 0;
 
-const signed int maxStep = 10000;
+const signed int maxStep = 30000;
 //need to assign this manually
 signed int defaultStepPosition = 100;
 //Define as where device should return to after homing
@@ -75,6 +75,8 @@ void CheckLimitSwitch();
 void motorStep(unsigned long stepInterval);
 void motorMove(unsigned long stepInterval);
 void writeSerial();
+void readHX711();
+
 
 void setup() {
   //Serial setup
@@ -106,6 +108,7 @@ void setup() {
 
 
 void loop() {
+
   readSerial();
 
   switch(Mode){
@@ -142,6 +145,7 @@ void loop() {
   }
   
   writeSerial();
+
 }
 
 
@@ -154,51 +158,7 @@ void readSerial() {
     Serial.print(String(command) + String(value));
     Serial.print("\n");
 
-    if(command == 'S'){
-      //Stop/Idle
-      StepperMotor = STOP;
-      Mode = IDLE;
-      Serial.print("Motor Stopped at " + String(stepCount));
-      Serial.print("\n");
-    }
-    else if (command == 'C'){
-      //Config
-      testStepInterval = value;
-      Serial.print("Step Interval Set:" + String(testStepInterval));
-      Serial.print("\n");
-    }
-    else if (command == 'T' ){
-      //Run test
-      StepperMotor = DOWN;
-      setMotorDir(StepperMotor);
-      stepTarget = 0;
-
-      Serial.print("Running Test");
-      Serial.print("\n");
-      Mode = TESTING;
-    }
-    else if (command == 'P' ){
-      //Set Position
-      bool setPos = setPosition(value);
-      if (setPos){
-        Serial.print("moving to " + String(stepTarget));
-        Serial.print("\n");
-        Mode = POSITIONING;
-      }
-      else{
-        Serial.print("Error: position not acceptable");
-        Serial.print("\n");
-      }
-    }
-    else if (command == 'H' ){
-      //Home
-      Mode = HOMING;
-    }
-    else{
-      Serial.print("Error: not accepted input");
-      Serial.print("\n");
-    }
-    
+    readInput(command, value);    
   }
 }
 
@@ -250,10 +210,19 @@ void motorStep(unsigned long stepInterval) {
 
 }
 
+
 void writeSerial() {
-  //analogRead();
+  if (scale.is_ready()){
+    readHX711();
+  }
 
   //send values to 
 
 
+}
+
+
+void readHX711(){
+  long LoadReading = scale.read();
+  Serial.print("Load" + String(LoadReading) + "Step:" + String(stepCount));
 }

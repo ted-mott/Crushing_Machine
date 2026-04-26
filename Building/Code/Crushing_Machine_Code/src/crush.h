@@ -68,7 +68,7 @@ void home(){
 bool setPosition(int stepPosition){
   //Check position is capable of being moved to by motor
 
-  if (0 < stepPosition && stepPosition < maxStep){
+  if (0 <= stepPosition && stepPosition < maxStep){
     stepTarget = stepPosition;
     if (stepTarget > stepCount){
       //Target position is higher than current position
@@ -96,6 +96,57 @@ void motorMove(unsigned long stepInterval) {
     //if stepper motor is moving and aiming for target
     motorStep(stepInterval);
   }
+}
+
+
+void readInput(char command, long value){
+
+  if(command == 'S'){
+    //Stop/Idle
+    StepperMotor = STOP;
+    Mode = IDLE;
+    Serial.print("Motor Stopped at " + String(stepCount));
+    Serial.print("\n");
+  }
+  else if (command == 'C'){
+    //Config
+    testStepInterval = value;
+    Serial.print("Step Interval Set:" + String(testStepInterval));
+    Serial.print("\n");
+  }
+  else if (command == 'T' ){
+    //Run test
+    StepperMotor = DOWN;
+    setMotorDir(StepperMotor);
+    stepTarget = 0;
+
+    Serial.print("Running Test");
+    Serial.print("\n");
+    Mode = TESTING;
+  }
+  else if (command == 'P' ){
+    //Set Position
+    bool setPos = setPosition(value);
+    if (setPos){
+      Serial.print("moving to " + String(stepTarget));
+      Serial.print("\n");
+      Mode = POSITIONING;
+    }
+    else{
+      Serial.print("Error: position not acceptable");
+      Serial.print("\n");
+    }
+  }
+  else if (command == 'H' ){
+    //Home
+    Mode = HOMING;
+    Serial.print("Homing");
+    stepTarget = maxStep;
+  }
+  else{
+    Serial.print("Error: not accepted input");
+    Serial.print("\n");
+    }
 }
 
 
